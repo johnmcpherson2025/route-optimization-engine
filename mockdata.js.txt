@@ -1,0 +1,334 @@
+// mockData.js - Contains static data for the route optimizer
+
+// Vancouver Island and Gulf Islands locations
+const locations = [
+  'Victoria',
+  'Nanaimo',
+  'Tofino',
+  'Campbell River',
+  'Courtenay',
+  'Salt Spring Island',
+  'Gabriola Island',
+  'Galiano Island',
+  'Pender Island',
+  'Qualicum Beach',
+  'Port Alberni',
+  'Duncan',
+  'Comox',
+  'Parksville'
+];
+
+// Transportation carriers
+const carriers = [
+  {
+    id: 1,
+    name: 'Island Express',
+    type: 'truck',
+    costPerKm: 1.2,
+    averageSpeed: 60, // km/h
+    reliability: 0.95,
+    schedule: 'Daily',
+    limitations: ['No hazardous materials'],
+    specialCapabilities: ['Refrigeration', 'Oversized']
+  },
+  {
+    id: 2,
+    name: 'Coastal Ferries',
+    type: 'ferry',
+    costPerKm: 2.5,
+    averageSpeed: 20, // km/h
+    reliability: 0.9,
+    schedule: 'Daily with limited sailings',
+    limitations: ['Weather dependent'],
+    specialCapabilities: ['Oversized', 'Livestock']
+  },
+  {
+    id: 3,
+    name: 'Gulf Island Water Taxi',
+    type: 'boat',
+    costPerKm: 3.0,
+    averageSpeed: 25, // km/h
+    reliability: 0.85,
+    schedule: 'On demand',
+    limitations: ['Weather dependent', 'Limited capacity'],
+    specialCapabilities: ['Time-sensitive']
+  },
+  {
+    id: 4,
+    name: 'Island Logistics',
+    type: 'truck',
+    costPerKm: 1.3,
+    averageSpeed: 55, // km/h
+    reliability: 0.92,
+    schedule: 'Weekdays only',
+    limitations: ['No refrigerated goods'],
+    specialCapabilities: ['Hazardous', 'Fragile']
+  },
+  {
+    id: 5,
+    name: 'Pacific Connector',
+    type: 'ferry',
+    costPerKm: 2.2,
+    averageSpeed: 22, // km/h
+    reliability: 0.93,
+    schedule: 'Daily',
+    limitations: ['Fixed schedule'],
+    specialCapabilities: ['Oversized', 'Refrigeration']
+  },
+  {
+    id: 6,
+    name: 'Island Freight',
+    type: 'truck',
+    costPerKm: 1.1,
+    averageSpeed: 58, // km/h
+    reliability: 0.90,
+    schedule: 'Daily',
+    limitations: ['Limited to road access only'],
+    specialCapabilities: ['Oversized', 'Fragile', 'Time-sensitive']
+  }
+];
+
+// Transportation routes with distances
+const routes = [
+  // Victoria routes
+  {
+    id: 1,
+    origin: 'Victoria',
+    destination: 'Nanaimo',
+    distance: 115, // km
+    bidirectional: true,
+    carrierId: 1,
+    schedule: 'Daily (Multiple departures)'
+  },
+  {
+    id: 2,
+    origin: 'Victoria',
+    destination: 'Salt Spring Island',
+    distance: 40,
+    bidirectional: true,
+    carrierId: 2,
+    schedule: 'Daily (8:00 AM, 2:00 PM, 6:00 PM)'
+  },
+  {
+    id: 3,
+    origin: 'Victoria',
+    destination: 'Duncan',
+    distance: 60,
+    bidirectional: true,
+    carrierId: 1,
+    schedule: 'Daily (Hourly departures)'
+  },
+  {
+    id: 4,
+    origin: 'Victoria',
+    destination: 'Pender Island',
+    distance: 45,
+    bidirectional: true,
+    carrierId: 3,
+    schedule: 'Mon-Fri (9:00 AM, 3:00 PM)'
+  },
+  {
+    id: 5,
+    origin: 'Victoria',
+    destination: 'Galiano Island',
+    distance: 55,
+    bidirectional: true,
+    carrierId: 2,
+    schedule: 'Daily (10:30 AM, 4:30 PM)'
+  },
+  
+  // Nanaimo routes
+  {
+    id: 6,
+    origin: 'Nanaimo',
+    destination: 'Gabriola Island',
+    distance: 10,
+    bidirectional: true,
+    carrierId: 2,
+    schedule: 'Daily (Hourly departures)'
+  },
+  {
+    id: 7,
+    origin: 'Nanaimo',
+    destination: 'Parksville',
+    distance: 35,
+    bidirectional: true,
+    carrierId: 1,
+    schedule: 'Daily (Multiple departures)'
+  },
+  {
+    id: 8,
+    origin: 'Nanaimo',
+    destination: 'Tofino',
+    distance: 210,
+    bidirectional: true,
+    carrierId: 1,
+    schedule: 'Daily (8:00 AM, 12:00 PM)'
+  },
+  {
+    id: 9,
+    origin: 'Nanaimo',
+    destination: 'Qualicum Beach',
+    distance: 48,
+    bidirectional: true,
+    carrierId: 6,
+    schedule: 'Daily (Multiple departures)'
+  },
+  {
+    id: 10,
+    origin: 'Nanaimo',
+    destination: 'Port Alberni',
+    distance: 85,
+    bidirectional: true,
+    carrierId: 4,
+    schedule: 'Mon-Fri (9:00 AM, 2:00 PM)'
+  },
+  {
+    id: 11,
+    origin: 'Nanaimo',
+    destination: 'Comox',
+    distance: 110,
+    bidirectional: true,
+    carrierId: 6,
+    schedule: 'Daily (10:00 AM, 3:00 PM)'
+  },
+  {
+    id: 12,
+    origin: 'Nanaimo',
+    destination: 'Campbell River',
+    distance: 155,
+    bidirectional: true,
+    carrierId: 1,
+    schedule: 'Daily (8:00 AM, 1:00 PM)'
+  },
+  
+  // Gulf Islands connections
+  {
+    id: 13,
+    origin: 'Salt Spring Island',
+    destination: 'Galiano Island',
+    distance: 15,
+    bidirectional: true,
+    carrierId: 3,
+    schedule: 'Daily (9:00 AM, 2:00 PM, 5:00 PM)'
+  },
+  {
+    id: 14,
+    origin: 'Salt Spring Island',
+    destination: 'Pender Island',
+    distance: 20,
+    bidirectional: true,
+    carrierId: 3,
+    schedule: 'Daily (10:00 AM, 3:00 PM, 6:00 PM)'
+  },
+  {
+    id: 15,
+    origin: 'Galiano Island',
+    destination: 'Pender Island',
+    distance: 25,
+    bidirectional: true,
+    carrierId: 3,
+    schedule: 'Mon-Fri (11:00 AM, 4:00 PM)'
+  },
+  
+  // Other routes
+  {
+    id: 16,
+    origin: 'Duncan',
+    destination: 'Nanaimo',
+    distance: 55,
+    bidirectional: true,
+    carrierId: 4,
+    schedule: 'Daily (Multiple departures)'
+  },
+  {
+    id: 17,
+    origin: 'Parksville',
+    destination: 'Qualicum Beach',
+    distance: 15,
+    bidirectional: true,
+    carrierId: 6,
+    schedule: 'Daily (Hourly departures)'
+  },
+  {
+    id: 18,
+    origin: 'Qualicum Beach',
+    destination: 'Courtenay',
+    distance: 68,
+    bidirectional: true,
+    carrierId: 1,
+    schedule: 'Daily (Multiple departures)'
+  },
+  {
+    id: 19,
+    origin: 'Courtenay',
+    destination: 'Comox',
+    distance: 7,
+    bidirectional: true,
+    carrierId: 6,
+    schedule: 'Daily (Hourly departures)'
+  },
+  {
+    id: 20,
+    origin: 'Comox',
+    destination: 'Campbell River',
+    distance: 45,
+    bidirectional: true,
+    carrierId: 1,
+    schedule: 'Daily (Multiple departures)'
+  },
+  {
+    id: 21,
+    origin: 'Port Alberni',
+    destination: 'Tofino',
+    distance: 125,
+    bidirectional: true,
+    carrierId: 1,
+    schedule: 'Daily (9:00 AM, 1:00 PM)'
+  },
+  {
+    id: 22,
+    origin: 'Victoria',
+    destination: 'Tofino',
+    distance: 320,
+    bidirectional: true,
+    carrierId: 6,
+    schedule: 'Daily (7:00 AM)'
+  },
+  {
+    id: 23,
+    origin: 'Victoria',
+    destination: 'Campbell River',
+    distance: 265,
+    bidirectional: true,
+    carrierId: 4,
+    schedule: 'Mon-Fri (7:30 AM)'
+  },
+  {
+    id: 24,
+    origin: 'Victoria',
+    destination: 'Parksville',
+    distance: 150,
+    bidirectional: true,
+    carrierId: 1,
+    schedule: 'Daily (Multiple departures)'
+  },
+  {
+    id: 25,
+    origin: 'Salt Spring Island',
+    destination: 'Nanaimo',
+    distance: 60,
+    bidirectional: true,
+    carrierId: 5,
+    schedule: 'Daily (11:00 AM, 5:00 PM)'
+  },
+  {
+    id: 26,
+    origin: 'Gabriola Island',
+    destination: 'Salt Spring Island',
+    distance: 55,
+    bidirectional: true,
+    carrierId: 3,
+    schedule: 'Mon-Fri (10:30 AM, 3:30 PM)'
+  }
+];

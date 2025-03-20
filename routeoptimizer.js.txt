@@ -1,0 +1,584 @@
+// RouteOptimizer.js
+
+// The main RouteOptimizer component
+const RouteOptimizer = () => {
+  // State for form data
+  const [formData, React.useState({
+    origin: '',
+    destination: '',
+    shipmentDate: '',
+    weight: '',
+    dimensions: '',
+    priority: 'balanced', // 'cost', 'time', or 'balanced'
+    specialRequirements: []
+  })];
+  
+  // State for optimized routes
+  const [optimizedRoutes, setOptimizedRoutes] = React.useState([]);
+  
+  // Handle form changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  // Handle special requirements checkboxes
+  const handleSpecialReqChange = (requirement) => {
+    setFormData(prev => {
+      const newReqs = prev.specialRequirements.includes(requirement)
+        ? prev.specialRequirements.filter(req => req !== requirement)
+        : [...prev.specialRequirements, requirement];
+      return { ...prev, specialRequirements: newReqs };
+    });
+  };
+
+  // Submit form and generate optimized routes
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!formData.origin || !formData.destination || !formData.shipmentDate) {
+      alert('Please fill out all required fields');
+      return;
+    }
+    
+    // Generate optimized routes using our mock data
+    generateOptimizedRoutes();
+  };
+  
+  // Generate route options based on static data
+  const generateOptimizedRoutes = () => {
+    const { origin, destination, priority } = formData;
+    
+    // Find direct routes between origin and destination
+    const directRoutes = routes.filter(route => 
+      (route.origin === origin && route.destination === destination) ||
+      (route.bidirectional && route.origin === destination && route.destination === origin)
+    );
+    
+    // Find potential multi-leg journeys
+    const potentialMultiLeg = [];
+    
+    // Find all possible intermediate locations
+    const intermediateLocations = routes
+      .filter(route => route.origin === origin || (route.bidirectional && route.destination === origin))
+      .map(route => route.origin === origin ? route.destination : route.origin);
+    
+    // For each intermediate, look for connections to the destination
+    intermediateLocations.forEach(intermediate => {
+      if (intermediate === destination) return;
+      
+      const firstLegOptions = routes.filter(route => 
+        (route.origin === origin && route.destination === intermediate) ||
+        (route.bidirectional && route.origin === intermediate && route.destination === origin)
+      );
+      
+      const secondLegOptions = routes.filter(route => 
+        (route.origin === intermediate && route.destination === destination) ||
+        (route.bidirectional && route.origin === destination && route.destination === intermediate)
+      );
+      
+      // Create all possible combinations
+      firstLegOptions.forEach(firstLeg => {
+        secondLegOptions.forEach(secondLeg => {
+          // Find carrier data
+          const firstCarrier = carriers.find(c => c.id === firstLeg.carrierId);
+          const secondCarrier = carriers.find(c => c.id === secondLeg.carrierId);
+          
+          if (firstCarrier && secondCarrier) {
+            const transferTime = 1; // Default 1 hour transfer time
+            
+            potentialMultiLeg.push({
+              id: `multi-${firstLeg.id}-${secondLeg.id}`,
+              legs: [
+                {
+                  ...firstLeg,
+                  carrier: firstCarrier.name,
+                  transportType: firstCarrier.type,
+                  cost: firstLeg.distance * firstCarrier.costPerKm,
+                  time: firstLeg.distance / firstCarrier.averageSpeed,
+                  reliability: firstCarrier.reliability
+                },
+                {
+                  ...secondLeg,
+                  carrier: secondCarrier.name,
+                  transportType: secondCarrier.type,
+                  cost: secondLeg.distance * secondCarrier.costPerKm,
+                  time: secondLeg.distance / secondCarrier.averageSpeed,
+                  reliability: secondCarrier.reliability
+                }
+              ],
+              transferLocation: intermediate,
+              totalCost: 
+                (firstLeg.distance * firstCarrier.costPerKm) + 
+                (secondLeg.distance * secondCarrier.costPerKm),
+              totalTime: 
+                (firstLeg.distance / firstCarrier.averageSpeed) + 
+                (secondLeg.distance / secondCarrier.averageSpeed) + 
+                transferTime,
+              combinedReliability: firstCarrier.reliability * secondCarrier.reliability
+            });
+          }
+        });
+      });
+    });
+    
+    // Format direct routes for display
+    const formattedDirectRoutes = directRoutes.map(route => {
+      const carrier = carriers.find(c => c.id === route.carrierId);
+      
+      // Calculate times
+      const travelTimeHours = route.distance / carrier.averageSpeed;
+      const departureDate = new Date(formData.shipmentDate);
+      departureDate.setHours(8 + Math.floor(Math.random() * 8)); // Random departure 8AM-4PM
+      const arrivalDate = new Date(departureDate.getTime() + (travelTimeHours * 60 * 60 * 1000));
+      
+      return {
+        id: `direct-${route.id}`,
+        type: 'direct',
+        carrier: carrier.name,
+        transportType: carrier.type,
+        route: `${origin} → ${destination}`,
+        departureTime: formatTime(departureDate),
+        arrivalTime: formatTime(arrivalDate),
+        cost: (route.distance * carrier.costPerKm).toFixed(2),
+        duration: travelTimeHours.toFixed(1),
+        distance: route.distance,
+        reliability: carrier.reliability.toFixed(2),
+        limitations: carrier.limitations.join(', ') || 'None',
+        carbonFootprint: carrier.type === 'truck' ? 'High' : 'Medium',
+        schedule: route.schedule || 'Daily'
+      };
+    });
+    
+    // Format multi-leg routes for display
+    const formattedMultiLegRoutes = potentialMultiLeg.map(route => {
+      // Calculate timestamps
+      const departureDate = new Date(formData.shipmentDate);
+      departureDate.setHours(8 + Math.floor(Math.random() * 8)); // Random departure 8AM-4PM
+      
+      const firstLegArrival = new Date(
+        departureDate.getTime() + (route.legs[0].time * 60 * 60 * 1000)
+      );
+      
+      const secondLegDeparture = new Date(
+        firstLegArrival.getTime() + (1 * 60 * 60 * 1000) // 1 hour transfer
+      );
+      
+      const secondLegArrival = new Date(
+        secondLegDeparture.getTime() + (route.legs[1].time * 60 * 60 * 1000)
+      );
+      
+      return {
+        id: route.id,
+        type: 'multi-leg',
+        legs: [
+          {
+            ...route.legs[0],
+            departureTime: formatTime(departureDate),
+            arrivalTime: formatTime(firstLegArrival)
+          },
+          {
+            ...route.legs[1],
+            departureTime: formatTime(secondLegDeparture),
+            arrivalTime: formatTime(secondLegArrival)
+          }
+        ],
+        route: `${origin} → ${route.transferLocation} → ${destination}`,
+        transferLocation: route.transferLocation,
+        departureTime: formatTime(departureDate),
+        arrivalTime: formatTime(secondLegArrival),
+        totalCost: route.totalCost.toFixed(2),
+        duration: route.totalTime.toFixed(1),
+        reliability: route.combinedReliability.toFixed(2),
+        limitations: [
+          ...(route.legs[0].limitations || []), 
+          ...(route.legs[1].limitations || [])
+        ].join(', ') || 'None',
+        carbonFootprint: 
+          route.legs[0].transportType === 'truck' && route.legs[1].transportType === 'truck' 
+            ? 'High' 
+            : 'Medium',
+        connectionNote: `1 hour transfer at ${route.transferLocation}`
+      };
+    });
+    
+    // Combine all routes
+    let allRoutes = [...formattedDirectRoutes, ...formattedMultiLegRoutes];
+    
+    // Sort based on priority
+    if (priority === 'cost') {
+      allRoutes.sort((a, b) => parseFloat(a.type === 'direct' ? a.cost : a.totalCost) - 
+                             parseFloat(b.type === 'direct' ? b.cost : b.totalCost));
+    } else if (priority === 'time') {
+      allRoutes.sort((a, b) => parseFloat(a.type === 'direct' ? a.duration : a.duration) - 
+                             parseFloat(b.type === 'direct' ? b.duration : b.duration));
+    } else {
+      // Balanced approach using weighted score
+      allRoutes.sort((a, b) => {
+        const aCost = parseFloat(a.type === 'direct' ? a.cost : a.totalCost);
+        const aTime = parseFloat(a.type === 'direct' ? a.duration : a.duration);
+        const aRel = parseFloat(a.reliability);
+        
+        const bCost = parseFloat(b.type === 'direct' ? b.cost : b.totalCost);
+        const bTime = parseFloat(b.type === 'direct' ? b.duration : b.duration);
+        const bRel = parseFloat(b.reliability);
+        
+        // Create balanced score (lower is better)
+        const aScore = (aCost / 200) + (aTime * 2) + ((1 - aRel) * 10);
+        const bScore = (bCost / 200) + (bTime * 2) + ((1 - bRel) * 10);
+        
+        return aScore - bScore;
+      });
+    }
+    
+    // Limit to top 5 routes
+    allRoutes = allRoutes.slice(0, 5);
+    
+    // Set the optimized routes
+    setOptimizedRoutes(allRoutes);
+  };
+  
+  // Format time for display
+  const formatTime = (date) => {
+    let hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    
+    hours = hours % 12;
+    hours = hours ? hours : 12; // Convert 0 to 12
+    
+    const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+    
+    return `${hours}:${formattedMinutes} ${ampm}`;
+  };
+  
+  // Function to render the route cards
+  const renderRouteCard = (route, index) => {
+    // Determine icon based on transport type
+    const transportType = route.transportType || 
+      (route.legs && route.legs[0] ? route.legs[0].transportType : 'truck');
+    
+    // Calculate a simple "recommended" flag for the best option
+    const isRecommended = index === 0;
+    
+    return (
+      React.createElement('div', {
+        key: route.id,
+        className: `route-card ${isRecommended ? 'recommended' : ''}`
+      }, [
+        isRecommended && React.createElement('div', {
+          className: 'recommended-badge',
+          key: 'badge'
+        }, 'Recommended Option'),
+        
+        React.createElement('div', {
+          className: 'route-header',
+          key: 'header'
+        }, [
+          React.createElement('div', {
+            className: 'route-title',
+            key: 'title'
+          }, route.route),
+          React.createElement('div', {
+            className: 'transport-type',
+            key: 'transport'
+          }, transportType)
+        ]),
+        
+        React.createElement('div', {
+          className: 'carrier-info',
+          key: 'carrier'
+        }, `via ${route.carrier || (route.legs ? route.legs.map(leg => leg.carrier).join(' + ') : 'Unknown')} • ${route.schedule || 'Regular service'}`),
+        
+        React.createElement('div', {
+          className: 'route-details',
+          key: 'details'
+        }, [
+          React.createElement('div', {
+            className: 'detail',
+            key: 'cost'
+          }, [
+            React.createElement('span', {
+              className: 'detail-label',
+              key: 'cost-label'
+            }, 'Cost:'),
+            React.createElement('span', {
+              className: 'detail-value',
+              key: 'cost-value'
+            }, `$${route.type === 'direct' ? route.cost : route.totalCost}`)
+          ]),
+          React.createElement('div', {
+            className: 'detail',
+            key: 'time'
+          }, [
+            React.createElement('span', {
+              className: 'detail-label',
+              key: 'time-label'
+            }, 'Time:'),
+            React.createElement('span', {
+              className: 'detail-value',
+              key: 'time-value'
+            }, `${route.type === 'direct' ? route.duration : route.duration} hours`)
+          ])
+        ]),
+        
+        React.createElement('div', {
+          className: 'route-schedule',
+          key: 'schedule'
+        }, `${route.departureTime} → ${route.arrivalTime}`),
+        
+        route.reliability && parseFloat(route.reliability) < 0.9 && React.createElement('div', {
+          className: 'route-warning',
+          key: 'warning'
+        }, `Reliability: ${(parseFloat(route.reliability) * 100).toFixed(0)}% • ${route.limitations}`),
+        
+        route.connectionNote && React.createElement('div', {
+          className: 'connection-note',
+          key: 'connection'
+        }, route.connectionNote)
+      ])
+    );
+  };
+
+  return React.createElement('div', { className: 'route-optimizer' }, [
+    React.createElement('h1', { 
+      className: 'page-title',
+      key: 'title'
+    }, 'Route Optimization Engine'),
+    
+    React.createElement('div', { 
+      className: 'form-container',
+      key: 'form-container'
+    }, [
+      React.createElement('h2', { 
+        className: 'section-title',
+        key: 'form-title'
+      }, 'Find the best shipping route'),
+      
+      React.createElement('form', { 
+        onSubmit: handleSubmit,
+        key: 'form'
+      }, [
+        // Origins and Destinations
+        React.createElement('div', { 
+          className: 'form-row',
+          key: 'locations-row'
+        }, [
+          React.createElement('div', { 
+            className: 'form-group',
+            key: 'origin-group'
+          }, [
+            React.createElement('label', { key: 'origin-label' }, 'Origin *'),
+            React.createElement('select', { 
+              name: 'origin', 
+              value: formData.origin, 
+              onChange: handleChange,
+              required: true,
+              key: 'origin-select'
+            }, [
+              React.createElement('option', { value: '', key: 'origin-default' }, 'Select origin'),
+              ...locations.map(location => 
+                React.createElement('option', { 
+                  value: location, 
+                  key: `origin-${location}` 
+                }, location)
+              )
+            ])
+          ]),
+          
+          React.createElement('div', { 
+            className: 'form-group',
+            key: 'destination-group'
+          }, [
+            React.createElement('label', { key: 'destination-label' }, 'Destination *'),
+            React.createElement('select', { 
+              name: 'destination', 
+              value: formData.destination, 
+              onChange: handleChange,
+              required: true,
+              key: 'destination-select'
+            }, [
+              React.createElement('option', { value: '', key: 'destination-default' }, 'Select destination'),
+              ...locations.map(location => 
+                React.createElement('option', { 
+                  value: location, 
+                  key: `dest-${location}` 
+                }, location)
+              )
+            ])
+          ])
+        ]),
+        
+        // Shipment details row
+        React.createElement('div', { 
+          className: 'form-row',
+          key: 'details-row'
+        }, [
+          React.createElement('div', { 
+            className: 'form-group',
+            key: 'date-group'
+          }, [
+            React.createElement('label', { key: 'date-label' }, 'Shipment Date *'),
+            React.createElement('input', { 
+              type: 'date', 
+              name: 'shipmentDate', 
+              value: formData.shipmentDate, 
+              onChange: handleChange,
+              required: true,
+              key: 'date-input'
+            })
+          ]),
+          
+          React.createElement('div', { 
+            className: 'form-group',
+            key: 'weight-group'
+          }, [
+            React.createElement('label', { key: 'weight-label' }, 'Weight (kg)'),
+            React.createElement('input', { 
+              type: 'number', 
+              name: 'weight', 
+              value: formData.weight, 
+              onChange: handleChange,
+              placeholder: 'Optional',
+              key: 'weight-input'
+            })
+          ]),
+          
+          React.createElement('div', { 
+            className: 'form-group',
+            key: 'dimensions-group'
+          }, [
+            React.createElement('label', { key: 'dimensions-label' }, 'Dimensions (cm)'),
+            React.createElement('input', { 
+              type: 'text', 
+              name: 'dimensions', 
+              value: formData.dimensions, 
+              onChange: handleChange,
+              placeholder: 'L x W x H (optional)',
+              key: 'dimensions-input'
+            })
+          ])
+        ]),
+        
+        // Priority options
+        React.createElement('div', { 
+          className: 'form-group',
+          key: 'priority-group'
+        }, [
+          React.createElement('label', { key: 'priority-label' }, 'Optimization Priority'),
+          React.createElement('div', { 
+            className: 'radio-group',
+            key: 'priority-options'
+          }, [
+            React.createElement('label', { key: 'cost-option' }, [
+              React.createElement('input', { 
+                type: 'radio', 
+                name: 'priority', 
+                value: 'cost', 
+                checked: formData.priority === 'cost', 
+                onChange: handleChange,
+                key: 'cost-radio'
+              }),
+              React.createElement('span', { key: 'cost-text' }, 'Lowest Cost')
+            ]),
+            React.createElement('label', { key: 'time-option' }, [
+              React.createElement('input', { 
+                type: 'radio', 
+                name: 'priority', 
+                value: 'time', 
+                checked: formData.priority === 'time', 
+                onChange: handleChange,
+                key: 'time-radio'
+              }),
+              React.createElement('span', { key: 'time-text' }, 'Fastest Time')
+            ]),
+            React.createElement('label', { key: 'balanced-option' }, [
+              React.createElement('input', { 
+                type: 'radio', 
+                name: 'priority', 
+                value: 'balanced', 
+                checked: formData.priority === 'balanced', 
+                onChange: handleChange,
+                key: 'balanced-radio'
+              }),
+              React.createElement('span', { key: 'balanced-text' }, 'Balanced')
+            ])
+          ])
+        ]),
+        
+        // Special requirements
+        React.createElement('div', { 
+          className: 'form-group',
+          key: 'requirements-group'
+        }, [
+          React.createElement('label', { key: 'requirements-label' }, 'Special Requirements'),
+          React.createElement('div', { 
+            className: 'checkbox-group',
+            key: 'requirements-options'
+          }, 
+            ['Refrigeration', 'Fragile', 'Livestock', 'Hazardous', 'Oversized', 'Time-sensitive'].map(req => 
+              React.createElement('label', { key: `${req}-option` }, [
+                React.createElement('input', { 
+                  type: 'checkbox', 
+                  checked: formData.specialRequirements.includes(req), 
+                  onChange: () => handleSpecialReqChange(req),
+                  key: `${req}-checkbox`
+                }),
+                React.createElement('span', { key: `${req}-text` }, req)
+              ])
+            )
+          )
+        ]),
+        
+        // Submit button
+        React.createElement('div', { 
+          className: 'form-actions',
+          key: 'form-actions'
+        }, 
+          React.createElement('button', { 
+            type: 'submit', 
+            className: 'submit-button',
+            key: 'submit-button'
+          }, 'Find Optimal Routes')
+        )
+      ])
+    ]),
+    
+    // Results section
+    optimizedRoutes.length > 0 && React.createElement('div', { 
+      className: 'results-container',
+      key: 'results-container'
+    }, [
+      React.createElement('h2', { 
+        className: 'section-title',
+        key: 'results-title'
+      }, 'Optimized Route Options'),
+      React.createElement('p', { 
+        className: 'results-summary',
+        key: 'results-summary'
+      }, `Showing ${optimizedRoutes.length} options from ${formData.origin} to ${formData.destination} for ${formData.shipmentDate}.`),
+      
+      React.createElement('div', { 
+        className: 'route-cards',
+        key: 'route-cards'
+      }, optimizedRoutes.map((route, index) => renderRouteCard(route, index))),
+      
+      React.createElement('div', { 
+        className: 'results-note',
+        key: 'results-note'
+      }, [
+        React.createElement('p', { key: 'note-title' }, 
+          React.createElement('strong', {}, 'About these results:')
+        ),
+        React.createElement('p', { key: 'note-content' }, 
+          `Routes are optimized based on ${
+            formData.priority === 'cost' ? 'lowest cost' : 
+            formData.priority === 'time' ? 'fastest delivery time' : 
+            'a balance of cost and time'
+          }. All times and costs are estimates and may vary based on actual conditions.`
+        )
+      ])
+    ])
+  ]);
+};
